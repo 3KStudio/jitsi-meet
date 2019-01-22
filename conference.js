@@ -347,7 +347,10 @@ class ConferenceConnector {
         // not enough rights to create conference
         case JitsiConferenceErrors.AUTHENTICATION_REQUIRED: {
             // Schedule reconnect to check if someone else created the room.
-            this.reconnectTimeout = setTimeout(() => room.join(), 5000);
+            this.reconnectTimeout = setTimeout(() => {
+                APP.store.dispatch(conferenceWillJoin(room));
+                room.join();
+            }, 5000);
 
             const { password }
                 = APP.store.getState()['features/base/conference'];
@@ -2509,6 +2512,9 @@ export default {
             requestFeedbackPromise,
             this.leaveRoomAndDisconnect()
         ]).then(values => {
+            this._room = undefined;
+            room = undefined;
+
             APP.API.notifyReadyToClose();
             maybeRedirectToWelcomePage(values[0]);
         });
@@ -2523,11 +2529,7 @@ export default {
         APP.store.dispatch(conferenceWillLeave(room));
 
         return room.leave()
-            .then(disconnect, disconnect)
-            .then(() => {
-                this._room = undefined;
-                room = undefined;
-            });
+            .then(disconnect, disconnect);
     },
 
     /**
